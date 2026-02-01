@@ -1,0 +1,71 @@
+const crypto = require('crypto');
+
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16;
+const SALT_LENGTH = 64;
+const TAG_LENGTH = 16;
+const KEY_LENGTH = 32;
+
+/**
+ * Derive encryption key from password using PBKDF2
+ */
+function deriveKey(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 100000, KEY_LENGTH, 'sha512');
+}
+
+/**
+ * Encrypt text using AES-256-GCM
+ */
+function encrypt(text, password) {
+  if (!password || password.length < 32) {
+    throw new Error('Encryption key must be at least 32 characters long');
+  }
+
+  const salt = crypto.randomBytes(SALT_LENGTH);
+  const key = deriveKey(password, salt);
+  const iv = crypto.randomBytes(IV_LENGTH);
+  
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const tag = cipher.getAuthTag();
+  
+  // Combine salt, iv, tag, and encrypted data
+  return salt.toString('hex') + ':' + iv.toString('hex') + ':' + tag.toString('hex') + ':' + encrypted;
+}
+
+/**
+ * Decrypt text using AES-256-GCM
+ */
+function decrypt(encryptedData, password) {
+  if (!password || password.length < 32) {
+    throw new Error('Encryption key must be at least 32 characters long');
+  }
+
+  const parts = encryptedData.split(':');
+  if (parts.length !== 4) {
+    throw new Error('Invalid encrypted data format');
+  }
+
+  const salt = Buffer.from(parts[0], 'hex');
+  const iv = Buffer.from(parts[1], 'hex');
+  const tag = Buffer.from(parts[2], 'hex');
+  const encrypted = parts[3];
+
+  const key = deriveKey(password, salt);
+  
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+  
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
+
+module.exports = {
+  encrypt,
+  decrypt,
+};
