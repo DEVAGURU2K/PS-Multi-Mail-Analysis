@@ -8,6 +8,8 @@ import { EmailMonitorService } from './services/EmailMonitorService';
 import { ScraperService } from './services/ScraperService';
 import { DataExtractionService } from './services/DataExtractionService';
 import Property from './models/Property';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 // Load env
 dotenv.config({ path: path.join(__dirname, '../.env') }); // Try from running dir perspective
@@ -21,6 +23,9 @@ app.use(express.json());
 
 // Routes
 app.use('/api', propertyRoutes);
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // --- Background Worker Logic ---
 const initBackgroundServices = () => {
