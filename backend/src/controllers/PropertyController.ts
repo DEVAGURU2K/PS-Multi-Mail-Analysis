@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import Property from '../models/Property';
 import { ScraperService } from '../services/ScraperService';
 import { DataExtractionService } from '../services/DataExtractionService';
@@ -11,9 +11,9 @@ const reporter = new ReportGeneratorService();
 export class PropertyController {
 
     // GET /api/properties
-    async getAll(req: Request, res: Response) {
+    async getAll(req: any, res: Response) {
         try {
-            const properties = await Property.find().sort({ createdAt: -1 });
+            const properties = await Property.find({ owner: req.userId }).sort({ createdAt: -1 });
             res.json(properties);
         } catch (e) {
             res.status(500).json({ error: 'Failed to fetch properties' });
@@ -21,21 +21,18 @@ export class PropertyController {
     }
 
     // POST /api/properties/scan
-    async scanUrl(req: Request, res: Response) {
+    async scanUrl(req: any, res: Response) {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
 
         try {
-            console.log(`Manual scan requested for: ${url}`);
             const scraped = await scraper.scrape(url);
-
-            if (!scraped) {
-                return res.status(400).json({ error: 'Scraping returned no data. Check URL accessibility.' });
-            }
+            if (!scraped) return res.status(400).json({ error: 'Scraping failed' });
 
             const extracted = await extractor.extract(scraped.text);
 
             const prop = await Property.create({
+                owner: req.userId,
                 title: scraped.title,
                 source: 'manual',
                 link: url,
@@ -44,18 +41,14 @@ export class PropertyController {
 
             res.json(prop);
         } catch (e: any) {
-            if (e.code === 11000) {
-                return res.status(409).json({ error: 'Property with this URL already exists' });
-            }
-            console.error(e);
             res.status(500).json({ error: 'Processing failed' });
         }
     }
 
     // GET /api/stats
-    async getStats(req: Request, res: Response) {
+    async getStats(req: any, res: Response) {
         try {
-            const report = await reporter.generateDailySummary();
+            const report = await reporter.generateDailySummary(req.userId);
             res.json(report);
         } catch (e) {
             res.status(500).json({ error: 'Failed to generate stats' });

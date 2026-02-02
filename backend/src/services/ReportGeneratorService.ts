@@ -1,16 +1,15 @@
 import Property from '../models/Property';
 
 export class ReportGeneratorService {
-    async generateDailySummary() {
+    async generateDailySummary(userId: string) {
         try {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             const newProperties = await Property.find({
+                owner: userId,
                 createdAt: { $gte: today }
-            }).limit(50); // Cap report
-
-            console.log(`Generating report for ${today.toDateString()}: ${newProperties.length} items.`);
+            }).limit(50);
 
             return {
                 date: today,

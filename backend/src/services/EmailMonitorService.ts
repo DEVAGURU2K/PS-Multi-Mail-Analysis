@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 
 export interface EmailConfig {
     user: string;
-    password?: string;
+    password: string;
     host: string;
     port: number;
     tls: boolean;
@@ -100,5 +100,10 @@ export class EmailMonitorService extends EventEmitter {
                 console.log('Done fetching all messages!');
             });
         });
+    }
+
+    public stop() {
+        console.log(`Stopping IMAP connection for ${this.config.user}...`);
+        this.imap.end();
     }
 }

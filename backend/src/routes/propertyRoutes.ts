@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PropertyController } from '../controllers/PropertyController';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const controller = new PropertyController();
@@ -14,7 +15,7 @@ const controller = new PropertyController();
  *       200:
  *         description: A list of properties.
  */
-router.get('/properties', controller.getAll.bind(controller));
+router.get('/properties', authMiddleware, controller.getAll.bind(controller));
 
 /**
  * @swagger
@@ -37,7 +38,7 @@ router.get('/properties', controller.getAll.bind(controller));
  *       400:
  *         description: Invalid URL or missing URL.
  */
-router.post('/properties/scan', controller.scanUrl.bind(controller));
+router.post('/properties/scan', authMiddleware, controller.scanUrl.bind(controller));
 
 /**
  * @swagger
@@ -49,7 +50,7 @@ router.post('/properties/scan', controller.scanUrl.bind(controller));
  *       200:
  *         description: Daily property statistics.
  */
-router.get('/stats', controller.getStats.bind(controller));
+router.get('/stats', authMiddleware, controller.getStats.bind(controller));
 
 /**
  * @swagger

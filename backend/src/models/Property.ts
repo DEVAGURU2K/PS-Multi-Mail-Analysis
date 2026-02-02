@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProperty extends Document {
+    owner: mongoose.Types.ObjectId;
     title?: string;
     source: 'email' | 'web' | 'manual';
     link: string;
@@ -21,6 +22,7 @@ export interface IProperty extends Document {
 }
 
 const PropertySchema: Schema = new Schema({
+    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String },
     source: { type: String, required: true, enum: ['email', 'web', 'manual'], default: 'email' },
     link: { type: String, required: true, unique: true },

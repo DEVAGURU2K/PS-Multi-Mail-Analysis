@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../store';
+import { setStats } from '../store/slices/propertySlice';
 
-const API_URL = 'http://localhost:3000/api'; // Adjust for emulator (10.0.2.2 usually) if needed
+const API_URL = 'http://localhost:3000/api';
 
 export default function DashboardScreen() {
-  const [stats, setStats] = useState<any>(null);
+  const stats = useSelector((state: RootState) => state.properties.stats);
   const [refreshing, setRefreshing] = useState(false);
+  const { token } = useAuth();
+  const dispatch = useDispatch();
 
   const fetchStats = async () => {
     try {
-      // In simulator localhost works, on device needs IP
-      const res = await axios.get(`${API_URL}/stats`); 
-      setStats(res.data);
+      const res = await axios.get(`${API_URL}/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }); 
+      dispatch(setStats(res.data));
     } catch (err) {
       console.log(err);
     }

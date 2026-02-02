@@ -4,16 +4,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import connectDB from './config/database';
 import propertyRoutes from './routes/propertyRoutes';
-import { EmailMonitorService } from './services/EmailMonitorService';
-import { ScraperService } from './services/ScraperService';
-import { DataExtractionService } from './services/DataExtractionService';
-import Property from './models/Property';
+import authRoutes from './routes/authRoutes';
+import mailboxRoutes from './routes/mailboxRoutes';
+import { EmailStreamManager } from './services/EmailStreamManager';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
 // Load env
-dotenv.config({ path: path.join(__dirname, '../.env') }); // Try from running dir perspective
-if (!process.env.PORT) dotenv.config(); // Fallback
+dotenv.config({ path: path.join(__dirname, '../.env') });
+if (!process.env.PORT) dotenv.config();
 
 connectDB();
 
@@ -21,69 +20,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Global error handlers
+process.on('uncaughtException', (err) => {
+    console.error('🔥 Uncaught Exception:', err.message);
+    // Consider graceful shutdown or logging to a persistent store
+    // For now, just log and exit
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🔥 Unhandled Rejection at:', promise, 'reason:', reason);
+    // Log the unhandled rejection, but don't necessarily exit immediately
+    // This allows the application to continue running if the rejection isn't critical
+});
+
+// Request logger
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 // Routes
+console.log("Mounting /api/auth...");
+app.use('/api/auth', authRoutes);
+console.log("Mounting /api/mailboxes...");
+app.use('/api/mailboxes', mailboxRoutes);
+console.log("Mounting /api...");
 app.use('/api', propertyRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// --- Background Worker Logic ---
-const initBackgroundServices = () => {
-    const emailConfig = {
-        user: process.env.SMTP_USER || '',
-        password: process.env.SMTP_PASS || '',
-        host: process.env.SMTP_HOST || 'imap.gmail.com',
-        port: 993,
-        tls: true
-    };
-
-    if (emailConfig.user && emailConfig.password && emailConfig.password !== 'your-app-password') {
-        const monitor = new EmailMonitorService(emailConfig);
-        const scraper = new ScraperService();
-        const extractor = new DataExtractionService();
-
-        console.log("Starting Email Monitor...");
-
-        monitor.on('email', async (parsedEmail) => {
-            const text = parsedEmail.text || '';
-            const subject = parsedEmail.subject || 'No Subject';
-            console.log(`Processing email: ${subject}`);
-
-            // Regex to find URL
-            const linkMatch = text.match(/https?:\/\/[^\s>"]+/);
-
-            if (linkMatch) {
-                const url = linkMatch[0];
-                console.log(`Found link: ${url}`);
-                try {
-                    const scraped = await scraper.scrape(url);
-                    if (scraped) {
-                        const data = await extractor.extract(scraped.text);
-                        await Property.create({
-                            title: scraped.title,
-                            source: 'email',
-                            link: url,
-                            sender: parsedEmail.from?.text,
-                            raw_email_id: parsedEmail.messageId,
-                            extracted_data: data
-                        });
-                        console.log(`✅ Analyzed and saved: ${scraped.title}`);
-                    }
-                } catch (e) {
-                    console.error("Pipeline failed for email link", e);
-                }
-            } else {
-                console.log("No links found in email.");
-            }
-        });
-
-        monitor.connect();
-    } else {
-        console.log("⚠️  Email Monitor NOT started. Missing configured credentials in .env");
-    }
-};
-
-initBackgroundServices();
+// --- Dynamic Background Worker ---
+const streamManager = new EmailStreamManager();
+streamManager.startAll().catch(err => console.error("Stream Manager failed to start", err));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
