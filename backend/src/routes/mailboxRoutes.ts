@@ -5,7 +5,18 @@ import { EncryptionService } from '../services/EncryptionService';
 
 const router = Router();
 
-// GET /mailboxes
+/**
+ * @swagger
+ * /mailboxes:
+ *   get:
+ *     summary: Get all mailboxes
+ *     description: Retrieve all IMAP mailboxes configured for the current user.
+ *     responses:
+ *       200:
+ *         description: A list of mailboxes.
+ *       500:
+ *         description: Failed to fetch mailboxes.
+ */
 router.get('/', authMiddleware, async (req: any, res: Response) => {
     try {
         const mailboxes = await Mailbox.find({ owner: req.userId });
@@ -20,7 +31,35 @@ router.get('/', authMiddleware, async (req: any, res: Response) => {
     }
 });
 
-// POST /mailboxes
+/**
+ * @swagger
+ * /mailboxes:
+ *   post:
+ *     summary: Create a new mailbox
+ *     description: Add a new IMAP mailbox configuration to monitor.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               host:
+ *                 type: string
+ *               port:
+ *                 type: number
+ *               tls:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Mailbox created successfully.
+ *       400:
+ *         description: Failed to create mailbox.
+ */
 router.post('/', authMiddleware, async (req: any, res: Response) => {
     try {
         const { email, password, host, port, tls } = req.body;
@@ -42,7 +81,24 @@ router.post('/', authMiddleware, async (req: any, res: Response) => {
     }
 });
 
-// DELETE /mailboxes/:id
+/**
+ * @swagger
+ * /mailboxes/{id}:
+ *   delete:
+ *     summary: Delete a mailbox
+ *     description: Remove a mailbox configuration by ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Mailbox removed.
+ *       400:
+ *         description: Delete failed.
+ */
 router.delete('/:id', authMiddleware, async (req: any, res: Response) => {
     try {
         await Mailbox.findOneAndDelete({ _id: req.params.id, owner: req.userId });

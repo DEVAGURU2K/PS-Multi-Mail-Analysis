@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'def_secret_key_32_chars_long_!!!'; // Must be exactly 32 chars
+const ENCRYPTION_KEY_RAW = process.env.ENCRYPTION_KEY || 'def_secret_key_32_chars_long_!!!';
+// Ensure the key is exactly 32 bytes for aes-256-cbc
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(ENCRYPTION_KEY_RAW).digest();
 const IV_LENGTH = 16;
 
 export class EncryptionService {

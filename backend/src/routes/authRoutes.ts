@@ -5,6 +5,29 @@ import User from '../models/User';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
+/**
+ * @swagger
+ * /auth/signup:
+ *   post:
+ *     summary: User Signup
+ *     description: Register a new user and receive a JWT.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfuly.
+ *       400:
+ *         description: Signup failed.
+ */
 router.post('/signup', async (req: Request, res: Response) => {
     console.log('Signup attempt:', req.body.email);
     try {
@@ -19,6 +42,31 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: User Login
+ *     description: Authenticate a user and receive a JWT.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful.
+ *       401:
+ *         description: Invalid credentials.
+ *       500:
+ *         description: Login failed.
+ */
 router.post('/login', async (req: Request, res: Response) => {
     console.log('Login attempt:', req.body.email);
     try {
